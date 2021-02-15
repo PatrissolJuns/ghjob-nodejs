@@ -1,4 +1,25 @@
 {
+  "name": "ghjob-nodejs",
+  "version": "1.0.0",
+  "description": "Backend of the GhJob mobile app",
+  "author": {
+    "name": "Patrissol Kenfack",
+    "email": "patrissolkenfack@gmail.com",
+    "url": "https://patrissol-juns.com"
+  },
+  "homepage": "https://github.com/PatrissolJuns/ghjob-nodejs",
+  "repository": "https://github.com/PatrissolJuns/ghjob-nodejs",
+  "license": "MIT",
+  "keywords": [
+    "ghjob",
+    "nodejs",
+    "push-notification",
+    "gcm",
+    "fcm",
+    "jobs",
+    "github",
+    "api"
+  ],
   "dependencies": {
     "axios": "^0.21.1",
     "cors": "^2.8.5",
