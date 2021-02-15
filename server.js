@@ -26,6 +26,7 @@ app.get('/receive-token', (req, res) => {
              if (docs) {
                  res.json({
                      "status": true,
+                     "code": "DUPLICATED_TOKEN",
                      "message": "Token already exists"
                  });
              } else {
@@ -36,7 +37,6 @@ app.get('/receive-token', (req, res) => {
                              "error": "Invalid token sent"
                          });
                      }
-                     console.log("inserted => ", doc);
 
                      res.json({
                          "status": true
