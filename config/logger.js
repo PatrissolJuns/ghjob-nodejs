@@ -27,7 +27,10 @@ const logger = winston.createLogger({
         enumerateErrorFormat(),
         process.env.MODE === 'development' ? winston.format.colorize() : winston.format.uncolorize(),
         winston.format.splat(),
-        winston.format.printf(({ level, message }) => `${level}: ${message}`)
+        winston.format.timestamp({
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }),
+        winston.format.printf(({ timestamp, level, message, splat }) => `[${timestamp}] ${level.toUpperCase()}: ${message} ${splat !== undefined ? splat : ''}`)
     ),
     transports: [
         transport,
