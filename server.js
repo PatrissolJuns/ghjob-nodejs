@@ -19,6 +19,7 @@ app.get('/receive-token', (req, res) => {
      if (token) {
          devicesDB.findOne({token}, function (err, docs) {
              if (err) {
+                 logger.error("Error while trying to look for a sent token into the database " + err);
                  return res.status(400).json({
                      "status": false,
                      "error": "Invalid token sent"
@@ -32,14 +33,15 @@ app.get('/receive-token', (req, res) => {
                      "message": "Token already exists"
                  });
              } else {
-                 devicesDB.insert({token}, function (err, doc) {
+                 devicesDB.insert({token, createAt: Date.now()}, function (err, doc) {
                      if (err) {
+                         logger.error("Error while trying to register a new device " + err);
                          return res.status(400).json({
                              "status": false,
                              "error": "Invalid token sent"
                          });
                      }
-
+                     logger.info("A new device has been registered");
                      res.json({
                          "status": true
                      })
