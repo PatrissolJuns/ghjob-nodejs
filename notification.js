@@ -1,14 +1,10 @@
 require('dotenv').config();
 const gcm = require('node-gcm');
-const Datastore = require('nedb');
 const logger = require('./config/logger');
 const {getNewJobs, saveNewJobs} = require("./functions");
 
 // The database
-const jobsDB = new Datastore({ filename: './database.db', autoload: true});
-const devicesDB = new Datastore({ filename: './devices.db', autoload: true});
-const notificationsDB = new Datastore({ filename: './notifications.db', autoload: true});
-
+const { jobsDB, devicesDB, notificationsDB } = require('./databases');
 // GCM
 const sender = new gcm.Sender(process.env.FCM_SERVER_KEY);
 

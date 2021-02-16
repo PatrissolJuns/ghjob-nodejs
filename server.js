@@ -5,11 +5,13 @@ const port = 8508;
 const express = require('express');
 const app = express();
 
-const Datastore = require('nedb');
 const logger = require('./config/logger');
+const { devicesDB } = require('./databases');
+const {getOneJob, getAllJobs, searchJobs} = require("./jobs");
 
-// The database
-const devicesDB = new Datastore({ filename: './devices.db', autoload: true});
+app.get('/jobs', getAllJobs);
+app.get('/jobs/search', searchJobs);
+app.get('/jobs/:id', getOneJob);
 
 // Save new device token
 app.get('/receive-token', (req, res) => {

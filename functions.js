@@ -26,7 +26,7 @@ const populate = async (db, page = 1, data = []) => {
         pageData = pageData.map(job => ({...job, createdAt: new Date(job.created_at).getTime()}));
 
         if (pageData.length > 0) {
-            populate(db, page + 1, [ ...pageData, ...data]);
+            await populate(db, page + 1, [ ...pageData, ...data]);
         } else {
             db.insert(data, function (err, newDocs) {});
         }
