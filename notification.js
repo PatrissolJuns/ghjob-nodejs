@@ -49,7 +49,12 @@ logger.info("Starting performing... at " + Date());
 getNewJobs(jobsDB)
     .then(async jobs => {
         if (jobs.length > 0) {
-            await saveNewJobs(jobsDB, jobs);
+            try {
+                await saveNewJobs(jobsDB, jobs);
+            } catch (e) {
+                logger.error("Error while saving new jobs " + e);
+                process.exit();
+            }
 
             // Notify connected devices
             // Actually send the message
@@ -62,14 +67,21 @@ getNewJobs(jobsDB)
 
                     // Actually send message
                     sender.send(message, { registrationTokens: devices }, function (err, response) {
-                        if (err) logger.error("Error while sending message to device " + err);
+                        if (err) {
+                            logger.error("Error while sending message to device " + err);
+                            process.exit();
+                        }
                         else {
                             // Save message into database
                             notificationsDB.insert({...message, createdAt: Date.now()}, function (err, docs) {
-                                if (err) logger.error("Error while saving message to database " + err);
+                                if (err) {
+                                    logger.error("Error while saving message to database " + err);
+                                    process.exit();
+                                }
                                 else {
                                     logger.info(`Found ${jobs.length} new job(s) with id: ${JSON.stringify(jobs.map(i => i.id))}`);
                                     logger.info("Finished performing!!! at " + Date());
+                                    process.exit();
                                 }
                             });
                         }
@@ -79,6 +91,10 @@ getNewJobs(jobsDB)
         } else {
             logger.info(`Found 0 new job`);
             logger.info("Finished performing!!! at " + Date());
+            process.exit();
         }
     })
-    .catch(response => logger.error("Unable to get new jobs " + response));
+    .catch(response => {
+        logger.error("Unable to get new jobs " + response);
+        process.exit();
+    });
