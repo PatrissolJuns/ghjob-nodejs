@@ -1,7 +1,7 @@
 // Enable .env setting
 require('dotenv').config();
 
-const port = 8508;
+const port = Number(process.env.PORT) || 8508;
 const express = require('express');
 const app = express();
 
