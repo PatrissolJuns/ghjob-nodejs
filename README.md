@@ -22,6 +22,12 @@ You can even make it more easy with `pm2` so that it'll be launched at boot star
 
 **Note**: Feel free to change the configuration of pm2 as you wish.
 
+But before you play with API, you need to fill in the database and to do so, run the following script:
+```
+node populate.js
+```
+It will fetch all data from Github jobs API and save them into database
+
 ## Notifications
 
 The file `notification.js` is a script to constantly notify registered devices about new jobs.
