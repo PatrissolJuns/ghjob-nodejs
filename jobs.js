@@ -2,7 +2,7 @@
 require('dotenv').config();
 
 // Load database
-const { jobsDB } = require('./databases');
+const Job = require('./models/Job');
 const logger = require('./config/logger');
 
 const PAGINATE_NUMBER = Number(process.env.PAGINATE_NUMBER) || 20;
@@ -14,22 +14,20 @@ const PAGINATE_NUMBER = Number(process.env.PAGINATE_NUMBER) || 20;
  */
 const getAllJobs = (req, res) => {
     const page = ~~Number(req.query.page) || 1;
-    jobsDB
-        .find({}, { description: 0, how_to_apply: 0 })
-        .sort({createdAt: -1})
-        .skip(page > 1 ? ((page - 1) * PAGINATE_NUMBER) : 0)
-        .limit(PAGINATE_NUMBER)
-        .exec(function (err, docs) {
-            if (err) {
-                logger.error("Error while getting all jobs: " + err);
-                return res.status(400).send({
-                    status: false,
-                    error: err,
-                    code: "internal-server-error",
-                    message: "Error while getting all jobs"
-                });
-            }
-            res.json(docs);
+    Job.paginate({}, {
+            sort: {createdAt: -1},
+            projection: "-description -how_to_apply",
+            limit: PAGINATE_NUMBER,
+            page: page,
+        })
+        .then(results => res.json(results))
+        .catch(error => {
+            logger.error("Error while getting all jobs: " + error);
+            return res.status(400).send({
+                status: false,
+                code: "internal-server-error",
+                message: "Error while getting all jobs"
+            })
         });
 };
 
@@ -40,19 +38,10 @@ const getAllJobs = (req, res) => {
  */
 const getOneJob = (req, res) => {
     const { id } = req.params;
-    jobsDB
-        .findOne({id})
-        .exec(function (err, docs) {
-            if (err) {
-                logger.error("Error while getting one job: " + err);
-                return res.status(400).send({
-                    status: false,
-                    code: "internal-server-error",
-                    message: "Error while getting one job"
-                });
-            }
-            if (docs) {
-                res.json(docs);
+    Job.findOne({id})
+        .then( job => {
+            if (job) {
+                res.json(job);
             } else {
                 return res.status(400).send({
                     status: false,
@@ -60,6 +49,14 @@ const getOneJob = (req, res) => {
                     message: "Job does not exists"
                 });
             }
+        })
+        .catch(error => {
+            logger.error("Error while getting one job: " + error);
+            return res.status(400).send({
+                status: false,
+                code: "internal-server-error",
+                message: "Error while getting one job"
+            });
         });
 };
 
@@ -68,13 +65,14 @@ const getOneJob = (req, res) => {
  * search params:
  *  - search String match within title, description, company and how to apply
  *  - location Job's location
+ *  - company Job's company
  *  - fullTime Match full time's jobs
  * @param req
  * @param res
  */
 const searchJobs = (req, res) => {
     const page = ~~Number(req.query.page) || 1;
-    const { search, fullTime, location } = req.query;
+    const { search, fullTime, location, company } = req.query;
     let query = {};
 
     // Full time filtering
@@ -83,57 +81,41 @@ const searchJobs = (req, res) => {
 
     // Location filtering
     if (location) {
-        const _location = location.replace('+', '');
+        const _location = location.replace('+', ' ');
         query.location = new RegExp(_location, 'i');
     }
 
-    jobsDB
-        .find(query)
-        .sort({createdAt: -1})
-        .exec(function (err, jobs) {
-            if (err) {
-                logger.error("Error while searching jobs: " + err);
-                return res.status(400).send({
-                    status: false,
-                    error: err,
-                    code: "internal-server-error",
-                    message: "Error while searching jobs"
-                });
-            }
-            // Perform filtering
-            let results = jobs;
+    if (company) {
+        const _company = company.replace('+', ' ');
+        query.company = new RegExp(_company, 'i');
+    }
 
-            // Perform search filtering
-            if (search) {
-                const regex = new RegExp(search, 'i');
-                results = jobs
-                    .filter(job => {
-                        let belong = false;
-                        if (
-                            regex.test(job.title)
-                            || regex.test(job.description)
-                            || regex.test(job.company)
-                            || regex.test(job.how_to_apply)
-                        ) {
-                            belong = true;
-                        }
+    if (search) {
+        const regex = new RegExp(search, 'i');
+        query['$or'] = [
+            {title: regex},
+            {description: regex},
+            {company: regex},
+            {how_to_apply: regex},
+        ]
+    }
 
-                        return belong;
-                    });
-            }
-
-            // Pagination
-            const start = page > 1 ? ((page - 1) * PAGINATE_NUMBER) : 0;
-            results = results.slice(start, start + PAGINATE_NUMBER);
-
-            // Delete unwanted key
-            results = results.map(job => {
-                delete job.description;
-                delete job.how_to_apply;
-                return job;
+    Job.paginate(
+        query,
+        {
+            sort: {createdAt: -1},
+            projection: "-description -how_to_apply",
+            limit: PAGINATE_NUMBER,
+            page: page,
+        })
+        .then(results => res.json(results))
+        .catch(error => {
+            logger.error("Error while looking for all jobs: " + error);
+            return res.status(400).send({
+                status: false,
+                code: "internal-server-error",
+                message: "Error while looking for jobs"
             });
-
-            res.json(results);
         });
 };
 
