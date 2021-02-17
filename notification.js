@@ -1,12 +1,18 @@
+// Enable .env setting
 require('dotenv').config();
+// Initialization of database
+require("./mongodb").initMongoDb();
+
 const gcm = require('node-gcm');
 const logger = require('./config/logger');
 const {getNewJobs, saveNewJobs} = require("./functions");
 
-// The database
-const { jobsDB, devicesDB, notificationsDB } = require('./databases');
 // GCM
 const sender = new gcm.Sender(process.env.FCM_SERVER_KEY);
+
+// Model
+const Device = require('./models/Device'),
+    Notification = require('./models/Notification');
 
 /**
  * Get message to send for a given new jobs
@@ -37,20 +43,25 @@ const getMessage = (newJobs) => {
             message,
         },
         // Notification object
-        /*notification: {
-            title: `${newJobs.length} new job${newJobs.length > 1 ? 's' : ''}`,
+        notification: {
+            title: title,
             icon: "ic_launcher",
-            body: message
-        }*/
+            body: message,
+            color: "#ff513e"
+        }
     });
 };
 
-logger.info("Starting performing... at " + Date());
-getNewJobs(jobsDB)
+logger.info("Starting performing...");
+logger.info("Getting all new jobs...");
+getNewJobs()
     .then(async jobs => {
+        logger.info("All new jobs got");
         if (jobs.length > 0) {
             try {
-                await saveNewJobs(jobsDB, jobs);
+                logger.info("Saving new jobs...");
+                await saveNewJobs(jobs);
+                logger.info("New jobs saved");
             } catch (e) {
                 logger.error("Error while saving new jobs " + e);
                 process.exit();
@@ -58,39 +69,48 @@ getNewJobs(jobsDB)
 
             // Notify connected devices
             // Actually send the message
-            devicesDB.find({}, function (err, docs) {
-                if (!err) {
-                    // Get devices to notify
-                    const devices = docs.map(d => d.token);
-                    // Get message to send
-                    const message = getMessage(jobs);
-
-                    // Actually send message
-                    sender.send(message, { registrationTokens: devices }, function (err, response) {
-                        if (err) {
-                            logger.error("Error while sending message to device " + err);
-                            process.exit();
-                        }
-                        else {
-                            // Save message into database
-                            notificationsDB.insert({...message, createdAt: Date.now()}, function (err, docs) {
-                                if (err) {
-                                    logger.error("Error while saving message to database " + err);
-                                    process.exit();
-                                }
-                                else {
-                                    logger.info(`Found ${jobs.length} new job(s) with id: ${JSON.stringify(jobs.map(i => i.id))}`);
-                                    logger.info("Finished performing!!! at " + Date());
-                                    process.exit();
-                                }
-                            });
-                        }
-                    });
+            Device.find({}, function (err, devices) {
+                if (err) {
+                    logger.error("Error while getting all devices " + err);
+                    process.exit();
                 }
+                // Get devices to notify
+                const tokens = devices.map(d => d.token);
+
+                if (tokens.length === 0) {
+                    logger.warn("Process stopped because there's no device into the database");
+                    process.exit();
+                }
+
+                // Get message to send
+                const message = getMessage(jobs);
+
+                // Actually send message
+                sender.send(message, { registrationTokens: tokens }, function (err, response) {
+                    if (err) {
+                        logger.error("Error while sending message to device " + err);
+                        process.exit();
+                    }
+                    else {
+                        // Save message into database
+                        const notification = new Notification(message);
+                        notification
+                            .save()
+                            .then(_notification => {
+                                logger.info(`Found ${jobs.length} new job(s) with id: ${JSON.stringify(jobs.map(i => i.id))}`);
+                                logger.info("Finished performing. Bye");
+                                process.exit();
+                            })
+                            .catch(err => {
+                                logger.error("Error while saving message to database " + err);
+                                process.exit();
+                            });
+                    }
+                });
             });
         } else {
             logger.info(`Found 0 new job`);
-            logger.info("Finished performing!!! at " + Date());
+            logger.info("Finished performing. Bye");
             process.exit();
         }
     })
