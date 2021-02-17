@@ -1,20 +1,23 @@
-// Enable .env setting
-require('dotenv').config();
 const mongoose = require('mongoose');
+const logger = require('./config/logger');
 
+/**
+ * Script to connect to mongo DB
+ */
 const initMongoDb = () => {
     mongoose
         .connect(
-            process.env.MONGO_DB_URL || 'mongodb://localhost/url_shortner',
+            process.env.MONGO_DB_URL || 'mongodb://localhost:27017/ghjob',
             {
                 useNewUrlParser: true,
                 useUnifiedTopology: true
             }
-        ).then(() => {
-            console.log('Connected to mongoDB');
+        )
+        .then(() => {
+            logger.info('Connected to mongoDB');
         })
-        .catch(e => {
-            console.log('Error while DB connecting');
+        .catch(error => {
+            logger.error('Error while DB connecting ' + error);
             process.exit("Unable to connect to database");
         });
 };

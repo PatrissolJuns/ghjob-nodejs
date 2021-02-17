@@ -38,6 +38,13 @@ Example of running it each 5 minutes:
 */5 * * * * node /var/www/html/ghjob-nodejs/notification.js >> /var/log/ghjob-nodejs/cron.log
 ```
 
+**Note**: Since we use cron, we need to be aware of paths. Therefore you should edit notification.js to insert absolute path of **.env file** For instance
+change the line 2 from `require('dotenv').config()` to
+
+```javascript
+require('dotenv').config({ path: '/absolute-path/ghjob-nodejs/.env' });
+```
+
 ## Contributing
 
 Feel free to submit issues or pull requests.
