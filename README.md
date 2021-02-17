@@ -20,7 +20,7 @@ Now, you can run the `server.js` file with ```node server.js``` or ```nodemon se
 You can even make it more easy with `pm2` so that it'll be launched at boot start
 ```pm2 start server.config.js```
 
-**Note**: Feel free to change the configuration of pm2 at you wish.
+**Note**: Feel free to change the configuration of pm2 as you wish.
 
 ## Notifications
 
