@@ -1,12 +1,16 @@
 // Enable .env setting
 require('dotenv').config();
+// Initialization of database
+require("./mongodb").initMongoDb();
 
+// Express setup
+const app = require('express')();
 const port = Number(process.env.PORT) || 8508;
-const express = require('express');
-const app = express();
 
+// Logging tool
 const logger = require('./config/logger');
-const { devicesDB } = require('./databases');
+
+// API
 const {getOneJob, getAllJobs, searchJobs} = require("./jobs");
 
 app.get('/jobs', getAllJobs);
@@ -16,8 +20,9 @@ app.get('/jobs/:id', getOneJob);
 // Save new device token
 app.get('/receive-token', (req, res) => {
      const { token } = req.query;
+     const Device = require('./models/Device');
      if (token) {
-         devicesDB.findOne({token}, function (err, docs) {
+         Device.findOne({token}, function (err, docs) {
              if (err) {
                  logger.error("Error while trying to look for a sent token into the database " + err);
                  return res.status(400).json({
@@ -33,27 +38,35 @@ app.get('/receive-token', (req, res) => {
                      "message": "Token already exists"
                  });
              } else {
-                 devicesDB.insert({token, createAt: Date.now()}, function (err, doc) {
-                     if (err) {
+                 const device = new Device({token});
+                 device
+                     .save()
+                     .then(() => {
+                         logger.info("A new device has been registered");
+                         res.json({
+                             "status": true
+                         });
+                     })
+                     .catch(err => {
                          logger.error("Error while trying to register a new device " + err);
                          return res.status(400).json({
                              "status": false,
                              "error": "Invalid token sent"
                          });
-                     }
-                     logger.info("A new device has been registered");
-                     res.json({
-                         "status": true
-                     })
-                 });
+                     });
              }
          });
      } else {
          res.status(400).json({
              "status": false,
+             "code": "INVALID_TOKEN",
              "error": "Invalid token sent"
          });
      }
+});
+
+app.get('/', (req, res) => {
+    res.json("Welcome to GhJob's API");
 });
 
 app.listen(port, () => {
