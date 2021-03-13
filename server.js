@@ -5,17 +5,29 @@ require("./mongodb").initMongoDb();
 
 // Express setup
 const app = require('express')();
-const port = Number(process.env.PORT) || 8508;
+const bodyParser = require('body-parser');
+const port = Number(process.env.PORT) || 8504;
 
 // Logging tool
 const logger = require('./config/logger');
 
 // API
+const {saveNewError} = require("./errors");
 const {getOneJob, getAllJobs, searchJobs} = require("./jobs");
 
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
+
+// API definition
 app.get('/jobs', getAllJobs);
-app.get('/jobs/search', searchJobs);
 app.get('/jobs/:id', getOneJob);
+app.get('/jobs/search', searchJobs);
+
+// Save potentials error on fetching
+app.post('/errors', saveNewError);
 
 // Save new device token
 app.get('/receive-token', (req, res) => {
@@ -70,5 +82,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    logger.info(`App has successfully started`);
+    logger.info(`App has successfully started on port ${port}`);
 });
